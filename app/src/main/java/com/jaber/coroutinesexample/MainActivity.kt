@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers.Main
 
 class MainActivity : AppCompatActivity() {
     private lateinit var activityMainBinding: ActivityMainBinding
-
     private lateinit var job: Job
     private val PROGRESS_MAX = 100
     private val PROGRESS_START = 0
