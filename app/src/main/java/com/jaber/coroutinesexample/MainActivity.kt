@@ -2,7 +2,8 @@ package com.jaber.coroutinesexample
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import android.widget.ProgressBar
+import android.widget.Toast
 import com.jaber.coroutinesexample.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -10,7 +11,11 @@ import kotlinx.coroutines.Dispatchers.Main
 
 class MainActivity : AppCompatActivity() {
     private lateinit var activityMainBinding: ActivityMainBinding
-    val TIMED_OUT = 2100L
+
+    private lateinit var job: Job
+    private val PROGRESS_MAX = 100
+    private val PROGRESS_START = 0
+    private val JOB_TIME = 4000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
@@ -53,61 +58,37 @@ class MainActivity : AppCompatActivity() {
 
 
 
-    // Move Result from coroutineScope to Main Thread Method
-    private suspend fun setTextOnMainThread(input: String) {
-        withContext(Main) {
-            setNewText(input)
-        }
+    private fun initJob() {
+        activityMainBinding.jobButton.text = getString(R.string.start_job_1)
+        updateJobCompleteTextView("")
+        activityMainBinding.jobProgressBar.max = PROGRESS_MAX
+        activityMainBinding.jobProgressBar.progress = PROGRESS_START
 
-    }
+        job = Job()
 
-    //Regular Change UI Method
-    private fun setNewText(input: String) {
-        val newText = activityMainBinding.tv.text.toString() + "\n$input"
-        activityMainBinding.tv.text = newText
-    }
-
-    private suspend fun fakeApiRequest() {
-        withContext(IO){
-            /*
-            val job = launch{
-                val result1 = getResult1FromApi()
-                Log.i("debug","result1 :$result1")
-                setTextOnMainThread("Got $result1")
-
-                val result2 = getResult2FromApi()
-                Log.i("debug","result2 :$result2")
-                setTextOnMainThread("Got $result2")
-            }
-
-             */
-
-            val job = withTimeoutOrNull(TIMED_OUT){
-                val result1 = getResult1FromApi() // take time 1000ms
-                Log.i("debug","result1 :$result1")
-                setTextOnMainThread("Got $result1")
-
-                val result2 = getResult2FromApi()// take time 1000ms
-                Log.i("debug","result2 :$result2")
-                setTextOnMainThread("Got $result2")
-            }
-            if (job == null){
-                val message = "Cancelling job..Job took longer than $TIMED_OUT ms"
-                setTextOnMainThread(message)
+        //Error Or Cancelling Case
+        job.invokeOnCompletion {
+            it?.message.let {
+                var msg = it
+                if (msg.isNullOrBlank()) {
+                    msg = "UnKnown cancellation error"
+                }
+                showToast(msg)
             }
         }
+
     }
 
-    private suspend fun getResult1FromApi(): String {
-        delay(1000) // Does not block thread. Just suspends the coroutine inside the thread
-        return "Result #1"
+    //Functions to Update Main UI
+    private fun showToast(msg: String?) {
+        GlobalScope.launch(Main) {
+            Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+        }
     }
-
-    private suspend fun getResult2FromApi(): String {
-        delay(1000)
-        return "Result #2"
+    private fun updateJobCompleteTextView(text: String) {
+        GlobalScope.launch(Main) {
+            activityMainBinding.jobCompleteText.text = text
+        }
     }
-
-
 
 }
