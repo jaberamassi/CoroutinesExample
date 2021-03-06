@@ -17,20 +17,48 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(activityMainBinding.root)
 
-        activityMainBinding.button.setOnClickListener {
-            setNewText("Click!")
+        activityMainBinding.jobButton.setOnClickListener {
+            if (!::job.isInitialized) { // In case button Not Click Before ==> click it First time "No Running Operation"
+                initJob()
+            }
+            activityMainBinding.jobProgressBar.startJobOrCancel(job)
+        }
 
-            CoroutineScope(IO).launch {
-                fakeApiRequest()
+    }
+
+    private fun ProgressBar.startJobOrCancel(job: Job) {
+        if (this.progress == 0) { //Start Job
+            activityMainBinding.jobButton.text = context.getString(R.string.cancel_job_1)
+
+            CoroutineScope(IO + job).launch {
+
+                for (i in PROGRESS_START..PROGRESS_MAX) {
+                    delay((JOB_TIME / PROGRESS_MAX).toLong())
+                    this@startJobOrCancel.progress = i
+                }
+
+                updateJobCompleteTextView("job is complete")
             }
         }
+        else { //Cancel or Reset Job
+            println("$job is already active. Cancelling...")
+            if (job.isActive || job.isCompleted) {
+                job.cancel(CancellationException("Resetting job")) //throw msg in "invokeOnCompletion" => initJob function
+            }
+            initJob()
+        }
+
     }
+
+
+
 
     // Move Result from coroutineScope to Main Thread Method
     private suspend fun setTextOnMainThread(input: String) {
         withContext(Main) {
             setNewText(input)
         }
+
     }
 
     //Regular Change UI Method
