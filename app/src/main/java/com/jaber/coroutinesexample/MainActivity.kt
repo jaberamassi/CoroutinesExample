@@ -2,17 +2,15 @@ package com.jaber.coroutinesexample
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import com.jaber.coroutinesexample.databinding.ActivityMainBinding
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private lateinit var activityMainBinding: ActivityMainBinding
-
+    val TIMED_OUT = 2100L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
@@ -42,22 +40,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun fakeApiRequest() {
+        withContext(IO){
+            /*
+            val job = launch{
+                val result1 = getResult1FromApi()
+                Log.i("debug","result1 :$result1")
+                setTextOnMainThread("Got $result1")
 
-        val result1 = getResult1FromApi() // wait until job is done
-
-        if (result1 == "Result #1") {
-
-            setTextOnMainThread("Got $result1")
-
-            val result2 = getResult2FromApi() // wait until job is done
-
-            if (result2 == "Result #2") {
+                val result2 = getResult2FromApi()
+                Log.i("debug","result2 :$result2")
                 setTextOnMainThread("Got $result2")
-            } else {
-                setTextOnMainThread("Couldn't get Result #2")
             }
-        } else {
-            setTextOnMainThread("Couldn't get Result #1")
+
+             */
+
+            val job = withTimeoutOrNull(TIMED_OUT){
+                val result1 = getResult1FromApi() // take time 1000ms
+                Log.i("debug","result1 :$result1")
+                setTextOnMainThread("Got $result1")
+
+                val result2 = getResult2FromApi()// take time 1000ms
+                Log.i("debug","result2 :$result2")
+                setTextOnMainThread("Got $result2")
+            }
+            if (job == null){
+                val message = "Cancelling job..Job took longer than $TIMED_OUT ms"
+                setTextOnMainThread(message)
+            }
         }
     }
 
